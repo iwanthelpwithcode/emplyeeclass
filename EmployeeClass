@@ -1,0 +1,589 @@
+#include <iostream>
+#include <fstream>
+#include <cstdlib>
+#include <string>
+#include <algorithm>
+#include <vector>
+using namespace std;
+
+short int const COMPANY_SIZE = 30;
+short int getMenuChoice();
+
+class Employee
+{
+public:
+    Employee() : employee_id(0), firstname("undefined"), surname("undefined"), payrate(0.0), hours(0.0), years_service(0.0), level(0) {}
+    Employee(long id, string fname, string sname, float payrate, float hours, float service, short int level);
+
+	long getID() const { return employee_id; }
+    string getFname() const { return firstname; }
+    string getSname() const { return surname; }
+    float getPayRate() const { return payrate; }
+	float getPay(double hours) const { return hours * payrate; }
+	float getHours() const { return hours; }
+    short int getEmpType() const {  return emp_type; }
+    float getService() { return years_service; }
+    short int getLevel() { return level; }
+protected:
+	long employee_id;
+    string firstname, surname;
+    float payrate, hours;
+    float years_service; // years of service
+    short int emp_type; // 1 for manager, 2 for supervisor, 3 for line employee
+    short int level; // QQI: 1-10
+};
+
+class Manager : public Employee
+{
+public:
+	Manager() : Employee(), salaried(true), dept("undefined") {}
+	Manager(long eid, string fn, string sn, float pr, float hrs, float srv, short int lvl, short int sal, string dpt);
+
+    short int getSalaried() const { return salaried; }
+    string getDept() const { return dept; }
+    void displaydetails();
+private:
+    short int salaried;
+    string dept;
+};
+
+class Supervisor : public Employee
+{
+public:
+	Supervisor() : Employee(), num_employees(0), day_night(1) {}
+	Supervisor(long id, string fname, string sname, float payrate, float hours, float service, short int level, short int num_employees, short int day_night);
+
+    short int getNumEmplyees() const { return num_employees; }
+    int getDayNight() const { return day_night; }
+    void displaydetails();
+private:
+    short int num_employees;
+    int day_night;  // supervise a day (1) or night (2) shift
+};
+
+class Line_Employee : public Employee
+{
+public:
+	Line_Employee() : Employee(), benefits(false), num_days_remaining(0) {}
+	Line_Employee(long id, string fname, string sname, float payrate, float hours, float service, short int level, short int benefits, float num_days_remaining);
+
+    short int getBenefits() const { return benefits; }
+    float getNumDayRemaining() const { return num_days_remaining; }
+    void displaydetails();
+private:
+    short int benefits;
+    float num_days_remaining;  // line employee is entitled to 28 days holidays
+};
+
+int main()
+{
+	long id, mid, sid, leid;
+    short int emp_type, level, num_managers=0, num_supervisors=0, num_line_employees=0;
+    string fname, sname, dept;
+    float payrate, hours;
+    float service, day_night, num_days_remaining;
+    short int salaried, benefits;
+	short int num_employees=0;
+	
+    // Create vectors to store the employees
+    vector <Manager> managers;
+    vector <Supervisor> supervisors;
+    vector <Line_Employee> line_employees;
+    
+    Manager mtemp;
+    Supervisor stemp;
+    Line_Employee letemp;
+    
+	short int i=0;
+    ifstream fin;
+    fin.open("employees.txt", ios::in | ios::out);
+    if(fin.fail())
+    {
+        cout << "Error: Unable to open file\n";
+        exit(1);
+    }
+    ifstream mfin;
+    mfin.open("managers.txt", ios::in | ios::out);
+    if(mfin.fail())
+    {
+        cout << "Error: Unable to open file\n";
+        exit(1);
+    }
+    ifstream sfin;
+    sfin.open("supervisors.txt", ios::in | ios::out);
+    if(sfin.fail())
+    {
+        cout << "Error: Unable to open file\n";
+        exit(1);
+    }
+    ifstream lefin;
+    lefin.open("line_employees.txt", ios::in | ios::out);
+    if(lefin.fail())
+    {
+        cout << "Error: Unable to open file\n";
+        exit(1);
+    }
+    
+    while(!fin.eof())
+    {
+    	fin >> emp_type >> id >> fname >> sname >> payrate >> hours >> service >> level;
+    	if(emp_type == 1)	// manager
+    	{
+    		// mfin
+    		while(!mfin.eof())
+    		{
+    			mfin >> mid >> salaried >> dept;
+    			if(mid == id)
+    			{
+    				mtemp = Manager(id, fname, sname, payrate, hours, service, level, salaried, dept);
+    				managers.push_back(mtemp);
+				}
+			}
+			mfin.clear();
+			mfin.seekg(0);
+		}
+		else if(emp_type == 2)	// supervisor
+    	{
+    		// sfin
+    		while(!sfin.eof())
+    		{
+    			sfin >> sid >> num_employees >> day_night;
+    			if(sid == id)
+    			{
+    				stemp = Supervisor(id, fname, sname, payrate, hours, service, level, num_employees, day_night);
+    				supervisors.push_back(stemp);
+				}
+			}
+			sfin.clear();
+			sfin.seekg(0);
+		}
+		else if(emp_type == 3)	// line employee
+    	{
+    		// lefin
+    		while(!lefin.eof())
+    		{
+    			lefin >> leid >> benefits >> num_days_remaining;
+    			if(leid == id)
+    			{
+    				letemp = Line_Employee(id, fname, sname, payrate, hours, service, level, benefits, num_days_remaining);
+    				line_employees.push_back(letemp);
+				}
+			}
+			lefin.clear();
+			lefin.seekg(0);
+		}
+		else
+		{
+			cout << "Invalid emp_type" << endl;
+		}
+	}
+	fin.close();
+	mfin.close();
+	sfin.close();
+	lefin.close();
+	
+	long tempid;
+	bool found = false;
+	
+	while(1)
+	{
+		system("cls");
+		cout << "EMPLOYEE PORTAL SYSTEM" << endl << endl;
+		switch(getMenuChoice())
+		{
+			case 1:
+				system("cls");
+				cout << "MANAGERS" << endl << endl;
+				for(i=0; i<managers.size(); i++) {
+					managers[i].displaydetails();
+					}
+					cout << endl << "Press Return Key to continue.." << endl;
+ 					cin.ignore();
+					cin.get();   // get function waits for an enter key to be pressed
+					break;
+	
+			case 2:
+				system("cls");
+				cout << "SUPERVISORS" << endl << endl;;
+				for(i=0; i<supervisors.size(); i++)	{
+					supervisors[i].displaydetails();
+					}
+					cout << endl << "Press Return Key to continue.." << endl;
+ 					cin.ignore();
+					cin.get();   // get function waits for an enter key to be pressed
+					break;
+				
+			case 3:
+				system("cls");
+				cout << "LINE EMPLOYEES" << endl << endl;
+				for(i=0; i<line_employees.size(); i++) {
+					line_employees[i].displaydetails();
+					}
+					cout << endl << "Press Return Key to continue.." << endl;
+ 					cin.ignore();
+					cin.get();   // get function waits for an enter key to be pressed
+					break;
+				
+			case 4:
+			    cout << "Enter employee ID: ";
+			    cin >> id;
+			    cout << "Enter employee first name: ";
+			    cin >> fname;
+			    cout << "Enter employee last name: ";
+			    cin >> sname;
+			    cout << "Enter employee pay rate: ";
+			    cin >> payrate;
+			    cout << "Enter employee hours worked: ";
+			    cin >> hours;
+			    cout << "Enter employee years of service: ";
+			    cin >> service;
+			    cout << "Enter employee level (1-10): ";
+			    cin >> level;
+			    cout << "Enter employee type (1 for manager, 2 for supervisor, 3 for line employee): ";
+			    cin >> emp_type;
+			
+			    // Create a new employee object based on the input
+			    if (emp_type == 1) {
+			        cout << "Enter manager department: ";
+			        cin >> dept;
+			        cout << "Enter manager salaried status (1 for salaried, 0 for hourly): ";
+			        cin >> salaried;
+			        Manager new_employee(id, fname, sname, payrate, hours, service, level, salaried, dept);
+			        managers.push_back(new_employee);
+			    } else if (emp_type == 2) {
+			        cout << "Enter supervisor number of employees: ";
+			        cin >> num_employees;
+			        cout << "Enter supervisor shift (1 for day, 2 for night): ";
+			        cin >> day_night;
+			        Supervisor new_employee(id, fname, sname, payrate, hours, service, level, num_employees, day_night);
+			        supervisors.push_back(new_employee);
+			    } else if (emp_type == 3) {
+			    	cout << "Enter line employee benefits status (1 for yes, 0 for no): ";
+			        cin >> benefits;
+			        cout << "Enter line employee number of days remaining: ";
+			        cin >> num_days_remaining;
+			        Line_Employee new_employee(id, fname, sname, payrate, hours, service, level, benefits, num_days_remaining);
+			        line_employees.push_back(new_employee);
+			    } else {
+			        cout << "Invalid employee type\n";
+			    }
+			    break;
+				
+			case 5:
+				cout << "Enter employee ID to edit: ";
+				cin >> tempid;
+				
+				found = false;
+				for (i = 0; i < COMPANY_SIZE; i++)
+				{
+				    if (managers[i].getID() == tempid)
+				    {
+				        found = true;
+				        cout << "m bruh";
+				        system("PAUSE");
+				        break;
+				    }
+				    else if (supervisors[i].getID() == tempid)
+				    {
+				        found = true;
+				        cout << "s bruh";
+				        system("PAUSE");
+				        break;
+				    }
+				    else if (line_employees[i].getID() == tempid)
+				    {
+				        found = true;
+				        cout << "le bruh";
+				        system("PAUSE");
+				        break;
+				    }
+				}
+				if (!found)
+				{
+				    cout << "bruh";
+				    system("PAUSE");
+				}				
+				
+				cout << "Enter updated employee ID: ";
+			    cin >> id;
+			    cout << "Enter updated employee first name: ";
+			    cin >> fname;
+			    cout << "Enter updated employee last name: ";
+			    cin >> sname;
+			    cout << "Enter updated employee pay rate: ";
+			    cin >> payrate;
+			    cout << "Enter updated employee hours worked: ";
+			    cin >> hours;
+			    cout << "Enter updated employee years of service: ";
+			    cin >> service;
+			    cout << "Enter updated employee level (1-10): ";
+			    cin >> level;
+			    cout << "Enter updated employee type (1 for manager, 2 for supervisor, 3 for line employee): ";
+			    cin >> emp_type;
+			    
+			    if (emp_type == 1) {
+			        cout << "Enter manager department: ";
+			        cin >> dept;
+			        cout << "Enter manager salaried status (1 for salaried, 0 for hourly): ";
+			        cin >> salaried;
+			        Manager new_employee(id, fname, sname, payrate, hours, service, level, salaried, dept);
+			        managers[i]= new_employee;
+			    } else if (emp_type == 2) {
+			        cout << "Enter supervisor number of employees: ";
+			        cin >> num_employees;
+			        cout << "Enter supervisor shift (1 for day, 2 for night): ";
+			        cin >> day_night;
+			        Supervisor new_employee(id, fname, sname, payrate, hours, service, level, num_employees, day_night);
+			        supervisors[i]= new_employee;
+			    } else if (emp_type == 3) {
+			    	cout << "Enter line employee benefits status (1 for yes, 0 for no): ";
+			        cin >> benefits;
+			        cout << "Enter line employee number of days remaining: ";
+			        cin >> num_days_remaining;
+			        Line_Employee new_employee(id, fname, sname, payrate, hours, service, level, benefits, num_days_remaining);
+			        line_employees[i]= new_employee;
+			    } else {
+			        cout << "Invalid employee type\n";
+			    }
+			    break;
+				
+			case 6:
+				cout << "Enter employee ID to delete: ";
+				cin >> tempid;
+				
+				found = false;
+				for (i = 0; i < COMPANY_SIZE; i++)
+				{
+				    if (managers[i].getID() == tempid)
+				    {
+				        found = true;
+				        managers.erase(managers.begin()+i);
+				        cout << "m bruh gone";
+				        system("PAUSE");
+				        break;
+				    }
+				    else if (supervisors[i].getID() == tempid)
+				    {
+				        found = true;
+				        supervisors.erase(supervisors.begin()+i);
+				        cout << "s bruh gone";
+				        system("PAUSE");
+				        break;
+				    }
+				    else if (line_employees[i].getID() == tempid)
+				    {
+				        found = true;
+				        line_employees.erase(line_employees.begin()+i);
+				        cout << "le bruh gone";
+				        system("PAUSE");
+				        break;
+				    }
+				    break;
+				}
+				if (!found)
+				{
+				    cout << "bruh";
+				    system("PAUSE");
+				}
+				break;
+				
+				
+			default:
+				exit(1);
+				
+
+		}
+	}
+	
+    return 0;
+}
+
+float numericValidation(const float, const float);
+short int inputValidation(), menu(), pos=1, i, check=0;
+
+Employee::Employee(long id, string fn, string sn, float pr, float hrs, float srv, short int lvl)
+{
+	employee_id = id;
+	firstname = fn;
+	surname = sn;
+	payrate = pr;
+	hours = hrs;
+	years_service = srv;
+	level = lvl;
+}
+
+Manager::Manager(long id, string fn, string sn, float pr, float hrs, float srv, short int lvl, short int sal, string dpt)
+{
+	employee_id = id;
+	firstname = fn;
+	surname = sn;
+	payrate = pr;
+	hours = hrs;
+	years_service = srv;
+	level = lvl;
+	salaried = sal;
+	dept = dpt;
+}
+
+Supervisor::Supervisor(long id, string fn, string sn, float pr, float hrs, float srv, short int lvl, short int numempl, short int dn)
+{
+	employee_id = id;
+	firstname = fn;
+	surname = sn;
+	payrate = pr;
+	hours = hrs;
+	years_service = srv;
+	level = lvl;
+	num_employees = numempl;
+	day_night = dn;
+}
+
+Line_Employee::Line_Employee(long id, string fn, string sn, float pr, float hrs, float srv, short int lvl, short int ben, float ndr)
+{
+	employee_id = id;
+	firstname = fn;
+	surname = sn;
+	payrate = pr;
+	hours = hrs;
+	years_service = srv;
+	level = lvl;
+	benefits = ben;
+	num_days_remaining = ndr;
+}
+
+// Display a menu and return the user's choice
+short int getMenuChoice()
+{
+	short int menuChoice;
+
+	cout << "1. View Manager Details" << endl;
+	cout << "2. View Supervisor Details" << endl;
+	cout << "3. View Line Employee Details" << endl;
+	cout << "4. Add Employee" << endl;
+	cout << "5. Edit Employee Details" << endl;
+	cout << "6. Remove Employee" << endl;
+	cout << "7. Exit" << endl;
+	
+	// Get the user's choice and validate it
+	menuChoice = numericValidation(1,7);
+
+return menuChoice;
+}
+    
+// Display details for Manager class
+void Manager::displaydetails()
+{
+    cout << "Employee ID: " << employee_id << endl;
+    cout << "Employee name: " << firstname << " " << surname << endl;
+    cout << "Pay rate: " << payrate << endl;
+    cout << "Hours: " << hours << endl;
+    cout << "Years service: " << years_service << endl;
+    cout << "Education Level: " << level << endl;
+    cout << "Salaried: " << salaried << endl;
+    cout << "Department: " << dept << endl;
+    cout << endl;
+}
+
+// Display details for Supervisor class
+void Supervisor::displaydetails()
+{
+    cout << "Employee ID: " << employee_id << endl;
+    cout << "Employee name: " << firstname << " " << surname << endl;
+    cout << "Pay rate: " << payrate << endl;
+    cout << "Hours: " << hours << endl;
+    cout << "Years service: " << years_service << endl;
+    cout << "Education Level: " << level << endl;
+    cout << "Number of employees: " << num_employees << endl;
+    if (day_night == 1) {
+  		cout << "Day shift" << endl;
+	} else {
+ 		cout << "Night shift" << endl;
+	}
+	cout << endl;
+}
+
+// Display details for Line Employee class
+void Line_Employee::displaydetails()
+{
+    cout << "Employee ID: " << employee_id << endl;
+    cout << "Employee name: " << firstname << " " << surname << endl;
+    cout << "Pay rate: " << payrate << endl;
+	cout << "Hours: " << hours << endl;
+    cout << "Years service: " << years_service << endl;
+    cout << "Education Level: " << level << endl;
+    cout << "Eligible for benefits: " << benefits << endl;
+    cout << "Number of vacation days remaining: " << num_days_remaining << endl;
+    cout << endl;
+}
+
+// Function for numeric input validation within a range
+float numericValidation(const float min, const float max)
+{
+    float value;
+    
+    // Loop until a valid input is received
+    do
+    {
+        // Prompt the user for input
+        cout << endl << "Enter a number between " << min << " and " << max << ": ";
+        
+        // Get the user's input
+        cin >> value;
+        
+        // Check if the input is a number
+        if (cin.fail())
+        {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Invalid input. Please enter a number." << endl;
+            continue;
+        }
+        
+        // Check if the input is within the specified range
+        while (true)
+		{
+		  if (value < min || value > max) {
+		    cout << "Input is outside the specified range." << endl;
+		  } else {
+		    // input is valid, do something with it
+		    break;
+		  }
+		}
+        // Input is valid, break out of the loop
+        break;
+        
+    } while (true);
+    
+    return value;
+}
+
+// Function for short integer input validation
+short int inputValidation()
+{
+    short int value;
+    
+    // Loop until a valid input is received
+    do
+    {
+        // Prompt the user for input
+        cout << "Enter a number: ";
+        
+        // Get the user's input
+        cin >> value;
+        
+        // Check if the input is a short integer
+        if (cin.fail())
+        {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Invalid input. Please enter a number." << endl;
+            continue;
+        }
+        
+        // Input is valid, break out of the loop
+        break;
+        
+    } while (true);
+    
+    return value;
+}
